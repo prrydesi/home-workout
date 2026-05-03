@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Home Workout - 15 / 30 min</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --bg2: #121a33;
+    --fg: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #22d3ee;
+    --accent2: #f97316;
+    --good: #10b981;
+    --warn: #fbbf24;
+    --danger: #ef4444;
+    --card: #182143;
+    --card2: #0f1530;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    user-select: none;
+  }
+  button, a.btn {
+    font-family: inherit;
+    cursor: pointer;
+    border: 0;
+    border-radius: 14px;
+    background: var(--card);
+    color: var(--fg);
+    transition: transform 0.1s ease, background 0.15s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  button:hover, a.btn:hover { background: #243066; }
+  button:active, a.btn:active { transform: scale(0.97); }
+  button:focus-visible, a.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  .screen { position: absolute; inset: 0; display: none; padding: 4vmin; overflow: auto; }
+  .screen.active { display: flex; }
+
+  /* HOME SCREEN */
+  #home { flex-direction: column; justify-content: center; align-items: center; gap: 3vmin; text-align: center; }
+  #home h1 { font-size: clamp(28px, 6vmin, 64px); font-weight: 800; letter-spacing: -0.5px; }
+  #home h1 .accent { color: var(--accent); }
+  #home p.lead { font-size: clamp(15px, 2.2vmin, 20px); color: var(--muted); max-width: 720px; line-height: 1.5; }
+  .mode-buttons { display: flex; gap: 3vmin; flex-wrap: wrap; justify-content: center; margin-top: 1vmin; }
+  .mode-btn {
+    padding: 4vmin 6vmin;
+    font-size: clamp(20px, 3.2vmin, 32px);
+    font-weight: 700;
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border: 2px solid #475569;
+    min-width: 280px;
+  }
+  .mode-btn .small { display: block; font-size: 0.55em; font-weight: 500; color: var(--muted); margin-top: 6px; }
+  .mode-btn.primary { background: linear-gradient(135deg, var(--accent), #0891b2); color: #001016; border-color: transparent; }
+  .mode-btn.primary .small { color: rgba(0,0,0,0.65); }
+  .mode-btn.secondary { background: linear-gradient(135deg, var(--accent2), #c2410c); color: #fff; border-color: transparent; }
+  .mode-btn.secondary .small { color: rgba(255,255,255,0.85); }
+  .mode-btn.danger { background: linear-gradient(135deg, #dc2626, #7f1d1d); color: #fff; border-color: transparent; }
+  .mode-btn.danger .small { color: rgba(255,255,255,0.85); }
+  .mode-btn.ghost {
+    background: transparent;
+    border: 2px solid #334155;
+    color: var(--fg);
+    font-size: clamp(15px, 2vmin, 18px);
+    padding: 2.4vmin 4vmin;
+    min-width: 240px;
+  }
+  #home .controls-hint {
+    margin-top: 1vmin;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  #home .controls-hint kbd {
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: monospace;
+    font-size: 12px;
+  }
+
+  /* WORKOUT SCREEN */
+  #workout { flex-direction: column; gap: 1.5vmin; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; gap: 2vmin; }
+  .progress-wrap { flex: 1; height: 10px; background: #1e293b; border-radius: 999px; overflow: hidden; }
+  .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.4s ease; }
+  .step-counter, .round-pill { color: var(--muted); font-size: clamp(11px, 1.5vmin, 14px); white-space: nowrap; }
+  .round-pill { background: #1e293b; padding: 6px 14px; border-radius: 999px; }
+
+  .main-area { flex: 1; display: grid; grid-template-columns: 1fr 1.1fr; gap: 2vmin; min-height: 0; }
+  @media (max-width: 850px) {
+    .main-area { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  }
+
+  .timer-card {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 2.5vmin;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5vmin;
+    border: 2px solid #243066;
+    transition: border-color 0.3s ease, background 0.3s ease;
+  }
+  .timer-card.resting { border-color: var(--good); background: linear-gradient(180deg, #182143 0%, #0f3a2c 100%); }
+  .timer-card.last-3 { border-color: var(--danger); animation: pulseDanger 1s infinite; }
+  @keyframes pulseDanger { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 0 12px rgba(239,68,68,0); } }
+
+  .phase-label { font-size: clamp(13px, 1.8vmin, 18px); color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+  .timer-display {
+    font-size: clamp(80px, 22vmin, 240px);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: var(--fg);
+  }
+  .timer-card.resting .timer-display { color: var(--good); }
+  .timer-card.last-3 .timer-display { color: var(--danger); }
+
+  .ex-name { font-size: clamp(20px, 3.4vmin, 36px); font-weight: 700; text-align: center; line-height: 1.15; }
+  .ex-icon { font-size: clamp(60px, 9vmin, 100px); line-height: 1; }
+
+  .next-up {
+    background: #0b1020;
+    padding: 10px 16px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px dashed #334155;
+  }
+  .next-up .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+  .next-up .name { font-size: clamp(15px, 2.2vmin, 20px); font-weight: 700; margin-top: 4px; }
+
+  /* DEMO CARD */
+  .demo-card {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 2.5vmin;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vmin;
+    overflow: auto;
+    min-height: 0;
+  }
+
+  .demo-section-title {
+    font-size: clamp(11px, 1.4vmin, 13px);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 600;
+  }
+
+  .yt-frame-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .yt-frame-wrap iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .yt-rest-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--good);
+    font-size: clamp(18px, 3vmin, 28px);
+    font-weight: 700;
+    background: linear-gradient(135deg, #0f3a2c 0%, #082018 100%);
+  }
+
+  .position-block {
+    background: var(--card2);
+    border-radius: 14px;
+    padding: 14px 16px;
+    border-left: 4px solid var(--accent);
+  }
+  .position-block.move { border-left-color: var(--accent2); }
+  .position-block .heading {
+    font-size: clamp(12px, 1.6vmin, 14px);
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .position-block.move .heading { color: var(--accent2); }
+  .position-block .body {
+    font-size: clamp(14px, 2vmin, 18px);
+    line-height: 1.5;
+  }
+
+  .cues { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .cues li {
+    background: var(--card2);
+    padding: 10px 14px 10px 38px;
+    border-radius: 10px;
+    font-size: clamp(13px, 1.85vmin, 17px);
+    line-height: 1.4;
+    position: relative;
+  }
+  .cues li::before {
+    content: counter(cue);
+    counter-increment: cue;
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #001016;
+    font-weight: 800;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cues { counter-reset: cue; }
+
+  .controls { display: flex; gap: 1vmin; justify-content: center; flex-wrap: wrap; }
+  .control-btn {
+    padding: 1.6vmin 2.6vmin;
+    font-size: clamp(14px, 2vmin, 18px);
+    font-weight: 600;
+    min-width: 110px;
+    gap: 8px;
+  }
+  .control-btn.primary { background: var(--accent); color: #001016; }
+  .control-btn.danger { background: #7f1d1d; color: #fff; }
+  .control-btn.danger:hover { background: #991b1b; }
+
+  /* DONE SCREEN */
+  #done { flex-direction: column; justify-content: center; align-items: center; gap: 3vmin; text-align: center; }
+  #done .check { font-size: clamp(80px, 14vmin, 140px); }
+  #done h2 { font-size: clamp(32px, 5vmin, 56px); font-weight: 800; }
+  #done p { font-size: clamp(16px, 2.4vmin, 22px); color: var(--muted); max-width: 600px; }
+
+  /* PREVIEW SCREEN */
+  #preview { flex-direction: column; gap: 2vmin; }
+  #preview .preview-header { display: flex; justify-content: space-between; align-items: center; gap: 2vmin; }
+  #preview h2 { font-size: clamp(22px, 3.5vmin, 32px); font-weight: 800; }
+  #preview .preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.5vmin;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+  .preview-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid #243066;
+  }
+  .preview-card .pc-icon { font-size: 40px; line-height: 1; }
+  .preview-card .pc-name { font-size: 16px; font-weight: 700; }
+  .preview-card .pc-frame-wrap {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    background: #000; border-radius: 10px; overflow: hidden;
+  }
+  .preview-card .pc-frame-wrap iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- HOME SCREEN -->
+<section id="home" class="screen active">
+  <h1>Home Workout <span class="accent">Coach</span></h1>
+  <p class="lead">
+    Bodyweight workout focused on <strong>core, glutes, and knees</strong>.
+    Voice cues, big timer, real video demos play inline. Pick your time below.
+  </p>
+  <div class="mode-buttons">
+    <button class="mode-btn primary" id="btnQuick">
+      QUICK 15 MIN
+      <span class="small">Foundation block - core / glutes / knee stability</span>
+    </button>
+    <button class="mode-btn secondary" id="btnFull">
+      FULL 30 MIN
+      <span class="small">Foundation + power block (lunges, climbers, step-ups)</span>
+    </button>
+    <button class="mode-btn danger" id="btnHiit">
+      HIIT 30 - SWEAT
+      <span class="small">Tabata burner: jumps, burpees, plyo, finisher</span>
+    </button>
+  </div>
+  <button class="mode-btn ghost" id="btnPreview">Preview All Exercises (with video links)</button>
+  <div class="controls-hint">
+    Keyboard: <kbd>Space</kbd> pause / resume &nbsp;
+    <kbd>&rarr;</kbd> skip step &nbsp;
+    <kbd>&larr;</kbd> restart step &nbsp;
+    <kbd>Esc</kbd> exit
+  </div>
+</section>
+
+<!-- WORKOUT SCREEN -->
+<section id="workout" class="screen">
+  <div class="top-bar">
+    <div class="round-pill" id="roundPill">Round 1 / 2</div>
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="step-counter" id="stepCounter">Step 1 / 14</div>
+  </div>
+  <div class="main-area">
+    <div class="timer-card" id="timerCard">
+      <div class="phase-label" id="phaseLabel">Get Ready</div>
+      <div class="ex-icon" id="exIcon">&#127939;</div>
+      <div class="timer-display" id="timerDisplay">00</div>
+      <div class="ex-name" id="exName">--</div>
+      <div class="next-up hidden" id="nextUp">
+        <div class="label">Up next</div>
+        <div class="name" id="nextUpName">--</div>
+      </div>
+    </div>
+    <div class="demo-card">
+      <div class="yt-frame-wrap" id="ytFrameWrap">
+        <iframe id="ytFrame" src="" allow="accelerometer; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <div class="yt-rest-placeholder hidden" id="ytRestPlaceholder">Rest - breathe</div>
+      </div>
+      <div class="position-block">
+        <div class="heading">Starting Position</div>
+        <div class="body" id="setupText">--</div>
+      </div>
+      <div class="position-block move">
+        <div class="heading">The Movement</div>
+        <div class="body" id="moveText">--</div>
+      </div>
+      <div class="demo-section-title">Form cues</div>
+      <ol class="cues" id="cuesList"></ol>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="control-btn primary" id="btnPause">Pause</button>
+    <button class="control-btn" id="btnPrev">&larr; Restart Step</button>
+    <button class="control-btn" id="btnNext">Skip &rarr;</button>
+    <button class="control-btn danger" id="btnExit">Exit</button>
+  </div>
+</section>
+
+<!-- PREVIEW SCREEN -->
+<section id="preview" class="screen">
+  <div class="preview-header">
+    <h2>Exercise Library</h2>
+    <button class="control-btn" id="btnPreviewBack">&larr; Back</button>
+  </div>
+  <p style="color: var(--muted); font-size: 14px;">Click any "Watch demo" button to open a real video. Recommend skimming all of them once before your first workout.</p>
+  <div class="preview-grid" id="previewGrid"></div>
+</section>
+
+<!-- DONE SCREEN -->
+<section id="done" class="screen">
+  <div class="check">&#10004;</div>
+  <h2>Well done!</h2>
+  <p id="doneMsg">You finished the workout. Hydrate, breathe deep, and stretch any tight spots.</p>
+  <button class="mode-btn primary" id="btnHome">Back to Start</button>
+</section>
+
+<script>
+/* ============================================================
+   EXERCISE LIBRARY
+   Each: name, duration, icon (emoji), videoId, setup, move, cues
+   YouTube embed URL: https://www.youtube-nocookie.com/embed/VIDEO_ID
+   ============================================================ */
+
+const EX = {
+  warmup: {
+    name: "Warm-up: March in Place",
+    duration: 60,
+    icon: "\u{1F6B6}",
+    videoId: "u1gmWFvEluM",
+    setup: "Stand tall, feet hip-width apart, arms relaxed at your sides.",
+    move: "March in place: lift one knee, then the other. Pump your arms naturally as you go. Build pace from easy to brisk over the 60 seconds.",
+    cues: [
+      "Lift knees toward waist height, alternating",
+      "Keep chest up, shoulders relaxed",
+      "Last 20 seconds: pick up the pace"
+    ]
+  },
+
+  glutebridge: {
+    name: "Glute Bridge",
+    duration: 45,
+    icon: "\u{1F9CD}",
+    videoId: "3nQeWv5Tx1A",
+    setup: "Lie on your back on the mat. Bend both knees, place feet flat on the floor, hip-width apart, heels close to your butt. Arms by your sides, palms down.",
+    move: "Press through your heels and lift your hips toward the ceiling until knees, hips, and shoulders are in a straight line. Squeeze glutes hard at the top, hold 1 second, lower with control.",
+    cues: [
+      "Drive through heels, not toes",
+      "Squeeze glutes at the top - count one-thousand-one",
+      "Don't arch your low back - use glutes, not spine"
+    ]
+  },
+
+  birddog: {
+    name: "Bird Dog",
+    duration: 45,
+    icon: "\u{1F436}",
+    videoId: "ZdAHe9_HeEw",
+    setup: "On your hands and knees on the mat. Hands directly under shoulders, knees directly under hips. Spine flat - imagine balancing a glass of water on your low back.",
+    move: "Slowly extend your right arm forward and your left leg back at the same time, until both are parallel to the floor. Hold 2 seconds, return, switch to left arm + right leg. Alternate.",
+    cues: [
+      "Move slow - this is about control, not speed",
+      "Keep hips level - don't twist toward the lifted leg",
+      "Reach long, like someone is pulling your hand and foot in opposite directions"
+    ]
+  },
+
+  wallsit: {
+    name: "Wall Sit",
+    duration: 45,
+    icon: "\u{1F9CD}",
+    videoId: "cWTZ8Am1Ee0",
+    setup: "Stand with your back flat against a wall. Walk your feet out about 50 cm (1.5 feet) from the wall, hip-width apart.",
+    move: "Slide down the wall until your knees are bent at 90 degrees - thighs parallel to the floor. Hold the position for the full 45 seconds. Don't let knees collapse inward.",
+    cues: [
+      "Knees stay over your ankles, not pushed past your toes",
+      "Press knees outward gently - resist them caving in",
+      "Breathe steadily - don't hold your breath"
+    ]
+  },
+
+  deadbug: {
+    name: "Dead Bug",
+    duration: 45,
+    icon: "\u{1F41B}",
+    videoId: "bxn9FBrt4-A",
+    setup: "Lie on your back. Lift arms straight up toward the ceiling. Lift knees so hips and knees are both bent at 90 degrees (table-top position).",
+    move: "Slowly lower your right arm overhead and your left leg toward the floor at the same time, without letting them touch. Return to start. Switch to left arm + right leg. Alternate.",
+    cues: [
+      "Press your low back firmly into the mat the entire time",
+      "If your back arches, lower the limbs less far",
+      "Move slow - 3 seconds out, 3 seconds back"
+    ]
+  },
+
+  clamshell: {
+    name: "Clamshell - Side Lying",
+    duration: 45,
+    icon: "\u{1F41A}",
+    videoId: "aQVApsdOLSI",
+    setup: "Lie on your right side. Stack hips and shoulders. Bend both knees about 45 degrees in front of you. Rest head on right arm. Keep feet stacked together. Add the resistance band above the knees if you want more challenge.",
+    move: "Keeping feet pressed together, lift your top (left) knee away from the bottom knee like a clam opening. Lower with control. Do this for 22 seconds, then switch to lying on your left side.",
+    cues: [
+      "Don't roll your hips backward as you lift - keep them stacked",
+      "Squeeze the glute on top, not just opening the knee",
+      "Voice will say SWITCH SIDES at halfway"
+    ]
+  },
+
+  sideplank: {
+    name: "Side Plank",
+    duration: 45,
+    icon: "\u{1F9D8}",
+    videoId: "Ujf5ELfqI7o",
+    setup: "Lie on your right side. Place your right elbow directly under your right shoulder, forearm flat on the mat pointing forward. Stack both feet, one on top of the other (or stagger them for more stability).",
+    move: "Lift your hips off the floor so your body is in one straight line from head to feet. Hold the position. If too hard, drop your bottom knee to the floor and balance there. Switch to the left side at halfway.",
+    cues: [
+      "Keep hips lifted - don't let them sag toward the floor",
+      "Keep your top shoulder stacked over the bottom one",
+      "Voice will say SWITCH SIDES at halfway"
+    ]
+  },
+
+  squatcalf: {
+    name: "Squat to Calf Raise",
+    duration: 45,
+    icon: "\u{1F3CB}",
+    videoId: "xYoudIsKIIQ",
+    setup: "Stand tall, feet shoulder-width apart, toes pointed slightly outward. Arms straight in front of you for balance, or hands on hips.",
+    move: "Sit your hips back and down into a squat as if sitting in a chair. Drive up powerfully through your heels, and at the very top push up onto your toes (calf raise). Lower back to standing, then go straight into the next squat.",
+    cues: [
+      "Knees track over your toes - don't let them cave inward",
+      "Squat to chair height - no need to go deeper",
+      "Control the descent: 2 seconds down, 1 second up"
+    ]
+  },
+
+  reverselunge: {
+    name: "Reverse Lunge - Alternating",
+    duration: 45,
+    icon: "\u{1F3C3}",
+    videoId: "u_zSfK5ZFU4",
+    setup: "Stand tall, feet hip-width apart, hands on hips or in front of chest for balance.",
+    move: "Step your right foot straight back and lower your right knee toward the floor (don't slam it). Both knees should bend to about 90 degrees. Push through your front (left) heel to return to standing. Then step the left foot back. Alternate.",
+    cues: [
+      "Front knee stays over the ankle, not pushed past the toes",
+      "Drop the back knee straight down - don't lean forward",
+      "Push through the FRONT heel to come up - that's the glute working"
+    ]
+  },
+
+  mountainclimber: {
+    name: "Mountain Climbers",
+    duration: 45,
+    icon: "\u{26F0}",
+    videoId: "hq_0YlyfqGM",
+    setup: "Get into a high plank position - hands directly under your shoulders, body in a straight line from head to heels, toes on the floor.",
+    move: "Drive your right knee in toward your chest, then quickly switch - left knee in as right leg goes back. Continue alternating at a brisk running pace. Your shoulders stay over your hands the whole time.",
+    cues: [
+      "Keep your hips low - don't let them bounce up and down",
+      "Brace your core like someone is about to punch you in the stomach",
+      "If too intense, slow the pace - quality over speed"
+    ]
+  },
+
+  singlebridge: {
+    name: "Single-Leg Glute Bridge",
+    duration: 45,
+    icon: "\u{1F9B5}",
+    videoId: "VUl8R0kn6v4",
+    setup: "Lie on your back. Bend your right knee with right foot flat on the floor (heel close to butt). Extend your left leg straight up toward the ceiling.",
+    move: "Press through your right heel and lift your hips up until your body is in a straight line from shoulder to extended knee. Squeeze the right glute hard. Lower with control. Do this for 22 seconds, then switch legs.",
+    cues: [
+      "All the work is in the planted-leg glute",
+      "Keep hips level - don't let one side drop",
+      "Voice will say SWITCH LEGS at halfway"
+    ]
+  },
+
+  shouldertaps: {
+    name: "Plank Shoulder Taps",
+    duration: 45,
+    icon: "\u{1F933}",
+    videoId: "gKA5LBy7WAI",
+    setup: "Get into a high plank position. Place your feet wider than hip-width - this gives a stable base. Hands under shoulders, body in a straight line.",
+    move: "Lift your right hand and tap your left shoulder, then return. Then left hand to right shoulder. Alternate at a steady pace. The challenge is keeping your hips perfectly still - don't let them rock side to side.",
+    cues: [
+      "Squeeze your glutes - it stops the hips from rocking",
+      "Wider feet = easier; narrower feet = harder",
+      "Slow and steady beats fast and sloppy"
+    ]
+  },
+
+  stepup: {
+    name: "Step-Ups on Chair",
+    duration: 45,
+    icon: "\u{1FA91}",
+    videoId: "aajhW7DD1EA",
+    setup: "Place a sturdy chair in front of you (one that won't tip - against a wall is safest). Stand facing the chair, arms at sides or on hips.",
+    move: "Place your entire right foot on the chair seat. Drive up through the right heel until you're standing tall on top, with the left knee driving up toward hip height. Step down with the left foot first, then the right. Alternate the leading leg each rep.",
+    cues: [
+      "Plant the WHOLE foot on the chair - not just toes",
+      "Drive up powerfully through the heel - this is the glute",
+      "Step down with control - don't drop"
+    ]
+  },
+
+  walk: {
+    name: "Active Recovery: Walk in Place",
+    duration: 30,
+    icon: "\u{1F6B6}",
+    videoId: "u1gmWFvEluM",
+    setup: "Stand tall, arms relaxed.",
+    move: "Walk in place at an easy pace. Shake out your legs and arms between steps if you want.",
+    cues: [
+      "Easy pace - this is recovery, not work",
+      "Breathe deep: in through nose, out through mouth",
+      "Sip water if you have it nearby"
+    ]
+  },
+
+  hipflexor: {
+    name: "Cooldown: Hip Flexor Stretch",
+    duration: 40,
+    icon: "\u{1F9CE}",
+    videoId: "6o-GpPIGR5w",
+    setup: "Place the pillow on the floor. Kneel on your right knee with the pillow cushioning the kneecap. Plant your left foot flat on the floor in front, knee bent 90 degrees.",
+    move: "Tuck your tailbone under and gently push your hips forward until you feel a stretch in the front of your right hip and thigh. Hold. Switch sides at 20 seconds.",
+    cues: [
+      "Squeeze the right glute - it deepens the stretch",
+      "Don't lean forward - stay tall",
+      "Voice will say SWITCH SIDES at halfway"
+    ]
+  },
+
+  figure4: {
+    name: "Cooldown: Figure-4 Glute Stretch",
+    duration: 40,
+    icon: "\u{1F9D8}",
+    videoId: "eGqbnFII3J8",
+    setup: "Lie on your back, both knees bent, feet flat on the floor. Place your right ankle on top of your left knee, forming a figure 4.",
+    move: "Reach both hands through and behind your left thigh, and gently pull the left thigh toward your chest. You'll feel a stretch in the right glute and outer hip. Hold. Switch sides at 20 seconds.",
+    cues: [
+      "Keep your head and shoulders relaxed on the floor",
+      "Flex the foot of the crossed leg to protect the knee",
+      "Voice will say SWITCH SIDES at halfway"
+    ]
+  },
+
+  childpose: {
+    name: "Cooldown: Child's Pose",
+    duration: 40,
+    icon: "\u{1F9D8}",
+    videoId: "2MJGg-dUKh0",
+    setup: "Kneel on the mat. Bring your big toes together and let your knees fall wide apart.",
+    move: "Sit your hips back toward your heels. Walk your hands forward and let your forehead rest on the mat. Reach long through the arms. Stay and breathe.",
+    cues: [
+      "Long, slow breaths - in for 4, out for 6",
+      "Let the shoulders drop, jaw soft",
+      "If knees hurt, place the pillow between hips and heels"
+    ]
+  },
+
+  jumpingjacks: {
+    name: "Jumping Jacks",
+    duration: 30,
+    icon: "\u{1F938}",
+    videoId: "uLVt6u15L98",
+    setup: "Stand tall, feet together, arms at your sides.",
+    move: "Jump your feet out wide while raising arms overhead. Jump back to start. Repeat at a steady fast pace.",
+    cues: [
+      "Land softly - knees slightly bent",
+      "Full arm range - hands clap overhead",
+      "Stay light on the balls of your feet"
+    ]
+  },
+
+  highknees: {
+    name: "High Knees",
+    duration: 40,
+    icon: "\u{1F3C3}",
+    videoId: "D0GwAezTvtg",
+    setup: "Stand tall, feet hip-width apart, hands at chest height (palms facing down).",
+    move: "Run in place, driving each knee up to slap your hands at chest height. Move as fast as you can while maintaining good posture.",
+    cues: [
+      "Knees come UP to your hands - don't drop the hands to the knees",
+      "Stay tall - don't lean back",
+      "Pump arms or hold them steady at chest"
+    ]
+  },
+
+  bwsquat: {
+    name: "Bodyweight Squat",
+    duration: 30,
+    icon: "\u{1F3CB}",
+    videoId: "P-yaD24bUE8",
+    setup: "Stand tall, feet shoulder-width apart, toes slightly turned out. Arms forward or hands clasped at chest.",
+    move: "Sit hips back and down to chair height (or as deep as comfortable). Drive through heels to stand. Steady rhythm, no jumping yet.",
+    cues: [
+      "Knees track over toes, don't cave inward",
+      "Chest stays up, weight in heels",
+      "This is a mobility primer - warm and controlled"
+    ]
+  },
+
+  forearmplank: {
+    name: "Forearm Plank Hold",
+    duration: 30,
+    icon: "\u{1F9D8}",
+    videoId: "3QZlgJ40LfU",
+    setup: "Lie face down. Place forearms on the mat, elbows directly under shoulders. Toes tucked under, legs straight.",
+    move: "Lift hips so body forms one straight line from head to heels. Hold steady. Brace core like bracing for a punch.",
+    cues: [
+      "Don't let hips sag down or pike up",
+      "Squeeze glutes - it locks the position",
+      "Breathe steady through the hold"
+    ]
+  },
+
+  jumpsquat: {
+    name: "Jump Squats",
+    duration: 40,
+    icon: "\u{1F680}",
+    videoId: "tZSYZdtbONc",
+    setup: "Stand tall, feet shoulder-width apart, arms at sides.",
+    move: "Drop into a quarter squat (chair height), then explode straight up - extend hips, knees, and ankles. Land soft, immediately drop into the next rep.",
+    cues: [
+      "Land soft - bend the knees on impact, don't slap the floor",
+      "Don't go too deep - quarter squat is plenty",
+      "Stay over your midfoot - don't let toes catch all the impact"
+    ]
+  },
+
+  burpee: {
+    name: "Burpees",
+    duration: 40,
+    icon: "\u{1F4A5}",
+    videoId: "G2hv_NYhM-A",
+    setup: "Stand tall, feet hip-width apart.",
+    move: "Squat down, place hands on the floor. Jump or step feet back to a plank. Optional push-up. Jump or step feet back to hands. Stand and jump (or just stand). Repeat.",
+    cues: [
+      "Pace yourself - this is the toughest move in the workout",
+      "Step feet back instead of jumping if knees feel cranky",
+      "Keep core braced when you hit the plank position"
+    ]
+  },
+
+  skater: {
+    name: "Skater Jumps",
+    duration: 40,
+    icon: "\u{26F8}",
+    videoId: "9_jLW6VkU8A",
+    setup: "Stand on your right leg, left leg slightly back behind you.",
+    move: "Jump laterally to the left, landing on your left leg. The right leg swings behind. Immediately jump back to the right. Like a speed skater, side to side.",
+    cues: [
+      "Land soft on a slightly bent knee",
+      "Swing the arms across the body for momentum",
+      "Cover ground - bigger jumps = bigger burn"
+    ]
+  }
+};
+
+const REST = (next) => ({
+  name: "Rest",
+  duration: 15,
+  icon: "\u{1F4A7}",
+  isRest: true,
+  next: next,
+  setup: "Stay in place. Don't sit fully down - keep moving lightly.",
+  move: "Shake out the muscle you just worked. Get into starting position for the next exercise.",
+  cues: [
+    "Breathe - in through nose, out through mouth",
+    "Shake out arms and legs",
+    "Reset for the next exercise"
+  ]
+});
+
+/* ============================================================
+   WORKOUT BUILDERS
+   ============================================================ */
+
+const BLOCK1_KEYS = ["glutebridge","birddog","wallsit","deadbug","clamshell","sideplank"];
+const BLOCK2_KEYS = ["squatcalf","reverselunge","mountainclimber","singlebridge","shouldertaps","stepup"];
+const COOLDOWN_KEYS = ["hipflexor","figure4","childpose"];
+
+const HIIT_WARMUP_KEYS = ["warmup","jumpingjacks","highknees","bwsquat","forearmplank","glutebridge"];
+const HIIT_MAIN_KEYS = ["jumpsquat","mountainclimber","reverselunge","burpee","highknees","shouldertaps","stepup","skater"];
+
+function buildHiitSteps() {
+  const steps = [];
+
+  // Warmup: 6 moves x 30s, no rest between (fluid)
+  HIIT_WARMUP_KEYS.forEach((k) => {
+    steps.push({ ...EX[k], duration: 30, round: null, label: "HIIT Warmup" });
+  });
+
+  // 2 HIIT rounds: 8 exercises x 40s work / 20s rest
+  for (let r = 1; r <= 2; r++) {
+    HIIT_MAIN_KEYS.forEach((k, i) => {
+      steps.push({ ...EX[k], duration: 40, round: r, label: `HIIT Round ${r}/2` });
+      const isLast = (i === HIIT_MAIN_KEYS.length - 1);
+      const isFinalRound = (isLast && r === 2);
+      if (!isFinalRound) {
+        const nextKey = isLast ? HIIT_MAIN_KEYS[0] : HIIT_MAIN_KEYS[i+1];
+        steps.push({ ...REST(EX[nextKey].name), duration: 20, label: "Rest" });
+      }
+    });
+  }
+
+  // 60s active recovery before Tabata finisher
+  steps.push({ ...EX.walk, duration: 60, label: "Pre-Finisher Recovery" });
+
+  // Tabata finisher: 8 rounds of 20s burpees / 10s rest
+  for (let r = 1; r <= 8; r++) {
+    steps.push({ ...EX.burpee, duration: 20, round: r, label: `Tabata Finisher ${r}/8` });
+    if (r < 8) {
+      steps.push({ ...REST(EX.burpee.name), duration: 10, label: "Tabata Rest" });
+    }
+  }
+
+  // Cooldown
+  COOLDOWN_KEYS.forEach((k, i) => {
+    const dur = (k === "childpose") ? 90 : 60;
+    steps.push({ ...EX[k], duration: dur, round: null, label: "Cooldown" });
+  });
+
+  return steps;
+}
+
+function buildSteps(mode) {
+  if (mode === "hiit") return buildHiitSteps();
+  const steps = [];
+  steps.push({ ...EX.warmup, round: null, label: "Warm-up" });
+
+  for (let r = 1; r <= 2; r++) {
+    BLOCK1_KEYS.forEach((k, i) => {
+      steps.push({ ...EX[k], round: r, label: `Block 1 - Round ${r}/2` });
+      const isLastOfRound = (i === BLOCK1_KEYS.length - 1);
+      const isFinalBlock1 = isLastOfRound && r === 2;
+      if (!isFinalBlock1) {
+        const nextKey = isLastOfRound ? BLOCK1_KEYS[0] : BLOCK1_KEYS[i+1];
+        steps.push({ ...REST(EX[nextKey].name), label: "Rest" });
+      }
+    });
+  }
+
+  if (mode === "full") {
+    steps.push({ ...EX.walk, label: "Transition" });
+    for (let r = 1; r <= 2; r++) {
+      BLOCK2_KEYS.forEach((k, i) => {
+        steps.push({ ...EX[k], round: r, label: `Block 2 - Round ${r}/2` });
+        const isLastOfRound = (i === BLOCK2_KEYS.length - 1);
+        const isFinalBlock2 = isLastOfRound && r === 2;
+        if (!isFinalBlock2) {
+          const nextKey = isLastOfRound ? BLOCK2_KEYS[0] : BLOCK2_KEYS[i+1];
+          steps.push({ ...REST(EX[nextKey].name), label: "Rest" });
+        }
+      });
+    }
+  }
+
+  COOLDOWN_KEYS.forEach((k, i) => {
+    steps.push({ ...EX[k], round: null, label: "Cooldown" });
+    if (i < COOLDOWN_KEYS.length - 1) {
+      steps.push({ ...REST(EX[COOLDOWN_KEYS[i+1]].name), duration: 10, label: "Rest" });
+    }
+  });
+
+  return steps;
+}
+
+/* ============================================================
+   AUDIO
+   ============================================================ */
+
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function beep(freq = 880, duration = 0.15, volume = 0.25) {
+  ensureAudio();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = freq;
+  osc.type = "sine";
+  gain.gain.value = volume;
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function speak(text, opts = {}) {
+  if (!("speechSynthesis" in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US";
+    u.rate = opts.rate ?? 1.0;
+    u.pitch = opts.pitch ?? 1.0;
+    u.volume = opts.volume ?? 1.0;
+    window.speechSynthesis.speak(u);
+  } catch(e) {}
+}
+
+/* ============================================================
+   ENGINE
+   ============================================================ */
+
+const state = {
+  steps: [],
+  index: 0,
+  remaining: 0,
+  paused: false,
+  intervalId: null,
+  halfwayCueGiven: false
+};
+
+const $ = (id) => document.getElementById(id);
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(id).classList.add("active");
+}
+
+function ytEmbedUrl(videoId) {
+  return "https://www.youtube.com/embed/" + videoId + "?rel=0&playsinline=1";
+}
+
+function startWorkout(mode) {
+  ensureAudio();
+  state.steps = buildSteps(mode);
+  state.index = 0;
+  state.paused = false;
+  showScreen("workout");
+  loadStep(0);
+}
+
+function loadStep(i) {
+  state.index = i;
+  if (i >= state.steps.length) { finish(); return; }
+  const step = state.steps[i];
+  state.remaining = step.duration;
+  state.halfwayCueGiven = false;
+
+  const card = $("timerCard");
+  card.classList.toggle("resting", !!step.isRest);
+  card.classList.remove("last-3");
+
+  $("phaseLabel").textContent = step.isRest ? "Rest" : (step.label || "Exercise");
+  $("exName").textContent = step.name;
+  $("exIcon").textContent = step.icon || "";
+  $("timerDisplay").textContent = String(step.duration).padStart(2,"0");
+  $("setupText").textContent = step.setup || "";
+  $("moveText").textContent = step.move || "";
+  $("cuesList").innerHTML = step.cues.map(c => `<li>${c}</li>`).join("");
+
+  // YouTube embed
+  const frame = $("ytFrame");
+  const placeholder = $("ytRestPlaceholder");
+  if (step.videoId) {
+    if (frame.dataset.videoId !== step.videoId) {
+      frame.src = ytEmbedUrl(step.videoId);
+      frame.dataset.videoId = step.videoId;
+    }
+    frame.style.display = "";
+    placeholder.classList.add("hidden");
+  } else {
+    frame.src = "about:blank";
+    frame.dataset.videoId = "";
+    frame.style.display = "none";
+    placeholder.classList.remove("hidden");
+  }
+
+  if (step.round) {
+    $("roundPill").textContent = step.label || `Round ${step.round}`;
+  } else {
+    $("roundPill").textContent = step.label || "";
+  }
+
+  if (step.isRest && step.next) {
+    $("nextUp").classList.remove("hidden");
+    $("nextUpName").textContent = step.next;
+  } else {
+    $("nextUp").classList.add("hidden");
+  }
+
+  const total = state.steps.length;
+  $("stepCounter").textContent = `Step ${i+1} / ${total}`;
+  $("progressBar").style.width = `${(i/total)*100}%`;
+
+  if (step.isRest) {
+    speak(`Rest. Next up: ${step.next}.`);
+  } else {
+    const intro = step.cues[0] ? `${step.name}. ${step.cues[0]}.` : step.name;
+    speak(intro);
+  }
+
+  startTick();
+}
+
+function startTick() {
+  stopTick();
+  state.intervalId = setInterval(() => {
+    if (state.paused) return;
+    state.remaining--;
+    const step = state.steps[state.index];
+
+    $("timerDisplay").textContent = String(Math.max(0, state.remaining)).padStart(2,"0");
+    const total = state.steps.length;
+    const stepProgress = 1 - state.remaining / step.duration;
+    $("progressBar").style.width = `${((state.index + stepProgress) / total) * 100}%`;
+
+    if (!state.halfwayCueGiven && !step.isRest && state.remaining === Math.floor(step.duration / 2) - 2) {
+      const c = step.cues.find(x => /switch/i.test(x));
+      if (c) speak("Switch sides.");
+      state.halfwayCueGiven = true;
+    }
+
+    if (state.remaining <= 3 && state.remaining > 0) {
+      $("timerCard").classList.add("last-3");
+      beep(state.remaining === 1 ? 1200 : 880, 0.12, 0.3);
+    }
+    if (state.remaining === 0) {
+      beep(1500, 0.3, 0.35);
+      stopTick();
+      setTimeout(() => loadStep(state.index + 1), 400);
+    }
+  }, 1000);
+}
+
+function stopTick() {
+  if (state.intervalId) { clearInterval(state.intervalId); state.intervalId = null; }
+}
+
+function togglePause() {
+  state.paused = !state.paused;
+  $("btnPause").textContent = state.paused ? "Resume" : "Pause";
+  if (state.paused) {
+    window.speechSynthesis && window.speechSynthesis.pause();
+  } else {
+    window.speechSynthesis && window.speechSynthesis.resume();
+  }
+}
+
+function skipForward() {
+  stopTick();
+  loadStep(state.index + 1);
+}
+function restartStep() {
+  stopTick();
+  loadStep(state.index);
+}
+function exitWorkout() {
+  stopTick();
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  showScreen("home");
+}
+function finish() {
+  stopTick();
+  speak("Workout complete. Well done!");
+  showScreen("done");
+}
+
+/* ============================================================
+   PREVIEW SCREEN
+   ============================================================ */
+
+function buildPreview() {
+  const grid = $("previewGrid");
+  const hiitOnly = ["jumpingjacks","highknees","bwsquat","forearmplank","jumpsquat","burpee","skater"];
+  const allKeys = ["warmup", ...BLOCK1_KEYS, ...BLOCK2_KEYS, ...hiitOnly, "walk", ...COOLDOWN_KEYS];
+  grid.innerHTML = allKeys.map(k => {
+    const e = EX[k];
+    return `
+      <div class="preview-card">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="pc-icon">${e.icon}</span>
+          <span class="pc-name">${e.name}</span>
+        </div>
+        <div class="pc-frame-wrap">
+          <iframe loading="lazy" src="${ytEmbedUrl(e.videoId)}" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ============================================================
+   EVENT BINDINGS
+   ============================================================ */
+
+$("btnQuick").addEventListener("click", () => startWorkout("quick"));
+$("btnFull").addEventListener("click", () => startWorkout("full"));
+$("btnHiit").addEventListener("click", () => startWorkout("hiit"));
+$("btnPreview").addEventListener("click", () => { buildPreview(); showScreen("preview"); });
+$("btnPreviewBack").addEventListener("click", () => showScreen("home"));
+$("btnPause").addEventListener("click", togglePause);
+$("btnNext").addEventListener("click", skipForward);
+$("btnPrev").addEventListener("click", restartStep);
+$("btnExit").addEventListener("click", exitWorkout);
+$("btnHome").addEventListener("click", () => showScreen("home"));
+
+document.addEventListener("keydown", (e) => {
+  const onWorkout = $("workout").classList.contains("active");
+  if (onWorkout) {
+    if (e.code === "Space") { e.preventDefault(); togglePause(); }
+    if (e.code === "ArrowRight") { e.preventDefault(); skipForward(); }
+    if (e.code === "ArrowLeft") { e.preventDefault(); restartStep(); }
+    if (e.code === "Escape") { e.preventDefault(); exitWorkout(); }
+  }
+});
+
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLock = await navigator.wakeLock.request("screen");
+    }
+  } catch(e) {}
+}
+document.addEventListener("visibilitychange", () => {
+  if (wakeLock !== null && document.visibilityState === "visible") requestWakeLock();
+});
+$("btnQuick").addEventListener("click", requestWakeLock);
+$("btnFull").addEventListener("click", requestWakeLock);
+$("btnHiit").addEventListener("click", requestWakeLock);
+
+document.addEventListener("click", function primeVoice() {
+  if ("speechSynthesis" in window) speak(" ");
+  document.removeEventListener("click", primeVoice);
+}, { once: true });
+</script>
+</body>
+</html>
